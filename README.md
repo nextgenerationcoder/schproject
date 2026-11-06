@@ -96,6 +96,49 @@ npm run build   # TypeScript strict type check and production build
 npm run lint
 ```
 
+## Production deployment (VPS)
+
+`docker-compose.prod.yml` runs three containers:
+
+- **PostgreSQL**, reachable only inside the Docker network.
+- **The backend**, which applies database migrations automatically when it starts.
+- **Caddy**, which serves the built frontend, forwards `/api` to the backend, gets HTTPS certificates from Let's Encrypt automatically, and puts a password prompt in front of the whole site. The prompt stays until real user login exists.
+
+Server requirements: Docker with the Compose plugin, ports 80 and 443 open, and a DNS A record that points the domain at the server.
+
+### First-time setup (on the server)
+
+```bash
+git clone -b claude/fervent-curie-ssijul https://github.com/nextgenerationcoder/schproject.git
+cd schproject
+cp .env.prod.example .env
+nano .env       # set DOMAIN, ACME_EMAIL, POSTGRES_PASSWORD, BASIC_AUTH_USER, BASIC_AUTH_HASH
+./deploy.sh
+```
+
+Generate the two secrets for `.env`:
+
+```bash
+openssl rand -hex 24                                                                          # POSTGRES_PASSWORD
+docker run --rm caddy:2-alpine caddy hash-password --plaintext 'YOUR-PASSWORD' | sed 's/\$/$$/g'   # BASIC_AUTH_HASH
+```
+
+### Updating to the latest code
+
+```bash
+cd schproject && ./deploy.sh
+```
+
+`deploy.sh` pulls the latest commits, rebuilds the images that changed and restarts them. The database and certificates live in Docker volumes and are kept across updates.
+
+Useful commands:
+
+```bash
+docker compose -f docker-compose.prod.yml ps                 # status
+docker compose -f docker-compose.prod.yml logs -f backend    # backend logs
+docker compose -f docker-compose.prod.yml logs -f web        # Caddy / HTTPS logs
+```
+
 ## Configuration
 
 All configuration comes from environment variables. See `backend/.env.example`.

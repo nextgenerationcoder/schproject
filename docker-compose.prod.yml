@@ -1,0 +1,56 @@
+# Production deployment: PostgreSQL + FastAPI backend + Caddy (static frontend, reverse proxy, automatic HTTPS).
+# Usage (on the server, in the repository root, with a filled-in .env):
+#   docker compose -f docker-compose.prod.yml up -d --build
+name: quotation-prod
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: quotation
+      POSTGRES_USER: quotation
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U quotation -d quotation"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    # No published port: the database is reachable only from inside the Docker network.
+
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    environment:
+      APP_ENV: production
+      LOG_LEVEL: INFO
+      DATABASE_URL: postgresql+psycopg://quotation:${POSTGRES_PASSWORD}@postgres:5432/quotation
+      CORS_ORIGINS: https://${DOMAIN:?Set DOMAIN in .env}
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  web:
+    build: ./frontend
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      DOMAIN: ${DOMAIN}
+      ACME_EMAIL: ${ACME_EMAIL:?Set ACME_EMAIL in .env}
+      BASIC_AUTH_USER: ${BASIC_AUTH_USER:?Set BASIC_AUTH_USER in .env}
+      BASIC_AUTH_HASH: ${BASIC_AUTH_HASH:?Set BASIC_AUTH_HASH in .env}
+    volumes:
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
+  caddy_data:
+  caddy_config:
