@@ -1,0 +1,4 @@
+Alembic migrations. Run from the backend/ directory with DATABASE_URL set (or backend/.env present):
+
+    alembic upgrade head                              # apply migrations
+    alembic revision --autogenerate -m "description"  # create a migration after changing models
