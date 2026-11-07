@@ -40,7 +40,7 @@ services:
       - "443:443"
       - "443:443/udp"
     environment:
-      DOMAIN: ${DOMAIN}
+      SITE_ADDRESS: ${DOMAIN}
       ACME_EMAIL: ${ACME_EMAIL:?Set ACME_EMAIL in .env}
       BASIC_AUTH_USER: ${BASIC_AUTH_USER:?Set BASIC_AUTH_USER in .env}
       BASIC_AUTH_HASH: ${BASIC_AUTH_HASH:?Set BASIC_AUTH_HASH in .env}

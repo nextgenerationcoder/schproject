@@ -1,9 +1,10 @@
 # Production web server. Values come from environment variables set in docker-compose.prod.yml.
+# SITE_ADDRESS is the domain (standalone: Caddy handles HTTPS itself) or ":80" (behind Traefik).
 {
 	email {$ACME_EMAIL}
 }
 
-{$DOMAIN} {
+{$SITE_ADDRESS} {
 	encode zstd gzip
 
 	# The application has no login yet (planned for a later step), so the whole site,
